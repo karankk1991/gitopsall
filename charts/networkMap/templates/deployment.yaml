@@ -8,6 +8,10 @@ kind: Deployment
 metadata:
   name: {{ .Values.nodeName }}
   namespace: {{ .Values.metadata.namespace }}
+  {{- if .Values.deployment.annotations }}
+  annotations:
+{{ toYaml .Values.deployment.annotations | indent 8 }}
+    {{- end }}
   labels:
     app.kubernetes.io/name: {{ .Values.nodeName }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
