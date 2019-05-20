@@ -3,6 +3,8 @@ kind: HelmRelease
 metadata:
   name: networkmap
   namespace: networkmap-ns
+  annotations:
+    flux.weave.works/automated: "true"
   
 spec:
   releaseName: networkmap
