@@ -4,7 +4,7 @@ metadata:
     name: orderer
     labels:
      creation_method: manual
-     env: dev
+     env: sit
 spec:
     containers:
     - image: luksa/kubia
