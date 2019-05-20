@@ -9,7 +9,7 @@ metadata:
       {{- end }}  
     labels:
       app.kubernetes.io/name: {{ .Values.nodeName }}
-      env:{{.Values.env}}
+      env: {{.Values.env}}
 spec:
     containers:
     - image: {{ .Values.image.containerName }}
