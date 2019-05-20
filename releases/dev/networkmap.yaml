@@ -2,7 +2,7 @@ apiVersion: flux.weave.works/v1beta1
 kind: HelmRelease
 metadata:
   name: networkmap
-  namespace: networkmap-ns
+  namespace: default
   annotations:
     flux.weave.works/automated: "true"
   
@@ -31,7 +31,7 @@ spec:
     metadata:
       #Provide the namespace for organization's peer
       #Eg. namespace: default
-      namespace: networkmap-ns
+      namespace: default
     
     image:
       #Provide the containerName of image
