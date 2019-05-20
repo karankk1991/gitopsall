@@ -1,0 +1,14 @@
+storage:
+  #Provide the provisioner for node
+  #Eg. provisioner: kubernetes.io/aws-ebs
+  provisioner: kubernetes.io/azure-file
+  #Provide the name for node
+  #Eg. name: bank1nodesc
+  name:  default
+  #Provide the type for node
+  #Eg. type: gp2
+  #type: gp2
+  type: standard
+  
+metadata:
+  namespace: default

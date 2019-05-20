@@ -1,0 +1,245 @@
+# Deployment
+# Creates the replicated container and manages lifecycle
+# TLS certs mounted
+# Persistent Volume mounted
+# Service points to this deployment (uses labels!)
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.nodeName }}
+        app.kubernetes.io/name: {{ .Values.nodeName }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      hostname: {{ .Values.nodeName }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: {{ .Values.nodeName }}-service
+        #image: adopfrablockchain.azurecr.io/nms:0.3.11-nms-test-27022019
+        image: adopfrablockchain.azurecr.io/nms:0.3.11-nms-test-27022019
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          {{- range $.Values.image.env }}
+          export {{ .name }}="{{ .value }}"
+          {{- end }} 
+          export NMS_AUTH_PASSWORD=`cat /opt/nms/creds/user_cred`
+          ls -ltr /opt/cordite/db/certs/root        
+          java -jar /opt/cordite/network-map-service.jar 2>&1
+
+        ports:
+          - containerPort: 8080
+        volumeMounts:
+          - name: {{ .Values.nodeName }}-servicedata
+            mountPath: "/opt/cordite/db/"
+            readOnly: false
+          - name: certs
+            mountPath: "/opt/cordite/db/certs"
+            readOnly: false
+          - name: creds
+            mountPath: "/opt/nms/creds"
+            readOnly: false
+      initContainers:
+      - name: init-certificates
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{.Values.vault.address}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{.Values.vault.authpath}}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: MOUNT_PATH
+            value: /opt/cordite/db/certs/
+          - name: VAULT_NODE_NAME
+            value: {{ .Values.nodeName }}
+          - name: SECRET_PREFIX
+            value: {{.Values.vault.secretprefix}}
+        command: ["sh", "-c"]
+        args:
+        - |-
+             #!/usr/bin/env sh
+             validateVaultResponse () {
+             if echo ${2} | grep "errors"; then
+              echo "ERROR: unable to retrieve ${1}: ${2}"
+              exit 1
+              fi
+             }
+
+             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+             echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+
+             # Login to Vault and so I can get an approle token
+             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+
+             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
+             echo "logged into vault"
+
+             #OUTPUT_PATH=${MOUNT_PATH}
+             #echo "${OUTPUT_PATH}"
+
+
+             #LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${SECRET_PREFIX}/certs | jq -r 'if .errors then . else . end')
+             #echo "Lookup Secret Response"
+             #echo LOOKUP_SECRET_RESPONSE
+             #validateVaultResponse "secret (${SECRET_PREFIX}/certs)" "${LOOKUP_SECRET_RESPONSE}"
+
+
+             #echo "LOOKUP_SECRET_RESPONSE received is: ${LOOKUP_SECRET_RESPONSE}"
+             #ROOTCA_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["rootca.jks"]')
+             #DOORMAN_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["doorman.jks"]')
+             #NETWORKMAP_KEY=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r '.data["networkmap.jks"]')
+             echo Removing All Db Data;
+             ls -ltr /opt/cordite;
+             mkdir -p ${OUTPUT_PATH}/root;
+             #mkdir -p ${OUTPUT_PATH}/doorman;
+             #mkdir -p ${OUTPUT_PATH}/network-map;
+
+             #mkdir -p ${OUTPUT_PATH}/mongo/certs;
+
+             #echo "After removing listing certificates listing /opt/corda/certificates"
+             #echo "${ROOTCA_KEY}" | base64 -d > ${OUTPUT_PATH}/root/keys.jks
+             #echo "${ROOTCA_KEY}" | base64 -d > ${OUTPUT_PATH}/keys.jks
+
+             #echo "${ROOTCA_KEY}" | base64 -d > ${OUTPUT_PATH}/mongo/certs/keys.jks
+
+             #echo "${DOORMAN_KEY}" | base64 -d > ${OUTPUT_PATH}/doorman/keys.jks
+             #echo "${NETWORKMAP_KEY}" | base64 -d > ${OUTPUT_PATH}/network-map/keys.jks
+
+             #echo "${ROOTCA_KEY}" | base64 -d > ${OUTPUT_PATH}/mongo/keys.jks
+             #echo "${DOORMAN_KEY}" | base64 -d > ${OUTPUT_PATH}/mongo/doormankeys.jks
+             #echo "${NETWORKMAP_KEY}" | base64 -d > ${OUTPUT_PATH}/mongo/networkmapkeys.jks
+
+             #/opt/cordite/db
+             #cat ${OUTPUT_PATH}/root/keys.jks;
+             #cat ${OUTPUT_PATH}/doorman/keys.jks;
+             #cat ${OUTPUT_PATH}/network-map/keys.jks;
+
+             mkdir -p /opt/cordite/db/root;
+             #echo "${ROOTCA_KEY}" | base64 -d > /opt/cordite/db/root/keys.jks
+             #echo "${ROOTCA_KEY}" | base64 -d > /opt/cordite/db/keys.jks
+             chmod 777 -R /opt/cordite/db
+             #ls -ltr ${OUTPUT_PATH}/root/keys.jks
+             #ls -ltr ${OUTPUT_PATH}/doorman/keys.jks
+             #ls -ltr ${OUTPUT_PATH}/network-map/keys.jks
+             ls -ltr /opt/cordite/db/root
+             ls -ltr /opt/cordite/db/certs
+             #ls -ltr /opt/cordite/db/root
+             
+
+             
+        volumeMounts:
+        - name: certs
+          mountPath: "/opt/cordite/db/certs/"
+          readOnly: false
+      - name: init-certificates-cred
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{.Values.vault.address}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{.Values.vault.authpath}}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: MOUNT_PATH
+            value: /opt/nms/creds
+          - name: VAULT_NODE_NAME
+            value: {{ .Values.nodeName }}
+          - name: SECRET_PREFIX
+            value: {{.Values.vault.secretprefix}}
+        command: ["sh", "-c"]
+        args:
+        - |-
+             #!/usr/bin/env sh
+             validateVaultResponse () {
+             if echo ${2} | grep "errors"; then
+              echo "ERROR: unable to retrieve ${1}: ${2}"
+              exit 1
+              fi
+             }
+
+             KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+             echo "Getting secrets from Vault Server: ${VAULT_ADDR}"
+
+             # Login to Vault and so I can get an approle token
+             VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+
+             validateVaultResponse 'vault login token' "${VAULT_TOKEN}"
+
+             echo "logged into vault"
+
+             OUTPUT_PATH=${MOUNT_PATH}
+             echo "${OUTPUT_PATH}"
+
+             SECRET_NMS_PASS={{ $.Values.vault.secretnmspass }}
+             if [ ! -z $SECRET_NMS_PASS ]
+             then
+               vault_secret_key=$(echo ${SECRET_NMS_PASS} |awk -F "?" '{print $1}')
+               vault_data_key=$(echo ${SECRET_NMS_PASS} |awk -F "?" '{print $2}')
+               LOOKUP_SECRET_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${vault_secret_key} | jq -r 'if .errors then . else . end')
+               validateVaultResponse "secret (${vault_secret_key})" "${LOOKUP_SECRET_RESPONSE}"
+               PASSWORD=$(echo ${LOOKUP_SECRET_RESPONSE} | jq -r ".data[\"${vault_data_key}\"]")
+               echo "${PASSWORD}" >> ${MOUNT_PATH}/user_cred
+               echo $PASSWORD               
+             fi
+
+             
+        volumeMounts:
+        - name: creds
+          mountPath: "/opt/nms/creds"
+          readOnly: false
+      - name: changepermissions
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+          - name: VAULT_ADDR
+            value: {{.Values.vault.address}}
+          - name: KUBERNETES_AUTH_PATH
+            value: {{.Values.vault.authpath}}
+          - name: VAULT_APP_ROLE
+            value: {{.Values.vault.role}}
+          - name: MOUNT_PATH
+            value: /opt/cordite/db/certs
+          - name: VAULT_NODE_NAME
+            value: {{ .Values.nodeName }}
+          - name: SECRET_PREFIX
+            value: {{.Values.vault.secretprefix}}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          chmod 777 -R /opt/cordite/;
+        volumeMounts:
+          - name: {{ .Values.nodeName }}-servicedata
+            mountPath: "/opt/cordite/db"
+            readOnly: false
+      imagePullSecrets:
+        - name: {{ .Values.image.imagePullSecret }}
+      volumes:
+        - name: {{ .Values.nodeName }}-servicedata
+          persistentVolumeClaim:
+            claimName: {{ .Values.nodeName }}-pvc
+        - name: certs
+          emptyDir:
+          medium: Memory
+        - name: creds
+          emptyDir:
+          medium: Memory
