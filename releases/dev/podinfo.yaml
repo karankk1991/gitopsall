@@ -10,7 +10,7 @@ metadata:
 spec:
   releaseName: podinfo-dev
   chart:
-    git: git@github.com:karankk1991/gitopsall
+    git: git@github.com:karankk1991/gitopsall.git
     path: charts/podinfo
     ref: master
   values:
