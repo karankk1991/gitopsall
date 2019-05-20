@@ -1,0 +1,185 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: notary-initial-registration
+  namespace: notary-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: notary-initial-registration
+  chart:
+    git: ssh://git@innersource.accenture.com/dlta/dlt-corda-gitops-all.git
+    path: charts/notary-initial-registration
+    ref: master
+  values:
+    replicaCount: 1
+
+
+    #Provide the nodeName for node
+    #Eg. nodeName: notary
+    nodeName: notary
+    
+    #Provide the replica set for node deployed
+    #Eg. replicas: 1
+    replicas: 1
+    
+    metadata:
+      #Provide the namespace for organization's peer
+      #Eg. namespace: default
+      namespace: notary-ns
+    
+    image:
+      #Provide the containerName of image
+      #Eg. containerName: adopfrablockchain.azurecr.io/h2:2018
+      containerName: adopfrablockchain.azurecr.io/corda:3.3.0-corda-test-20190219
+      #Provide the name of image for init container
+      #Eg. name: adopfrablockchain.azurecr.io/alpine-utils:1.0
+      initContainerName: adopfrablockchain.azurecr.io/alpine-utils:1.0
+      #Provide the image pull secret of image
+      #Eg. pullSecret: regcred
+      imagePullSecret: regcred
+    
+    #For more information for node.Conf fields please refer to: https://docs.corda.r3.com/corda-configuration-file.html
+    nodeConf:
+      #The host and port on which the node is available for protocol operations over ArtemisMQ.
+      p2p:
+        url: 52.207.154.17
+        port: 10002
+      #Provide Options for the RPC server exposed by the Node under rpcSettings.
+      rpcSettings:
+        useSsl: false
+        standAloneBroker: false
+        address: "0.0.0.0:10003"
+        adminAddress: "0.0.0.0:10005"
+        ssl:
+          #Provide the certificatesDirectory where certificates are stored.
+          #This path should be reletive to the base dir which is currently mount path.
+          certificatesDirectory: certificates
+          #Provide the filename for sslKeystore.
+          sslKeystoreFileName: "sslkeystore.jks"
+          #Provide the filename for trustStore.
+          trustStoreFileName: "truststore.jks"
+      #Provide the legalName for node
+      #Eg. legalName: "O=Notary,L=Zurich,C=CH"
+      legalName: "O=Notary,L=Zurich,C=CH"
+      messagingServerAddress:
+      jvmArgs:
+      systemProperties:
+      sshd:
+        port:
+      exportJMXTo:
+      transactionCacheSizeMegaBytes: 8
+      attachmentContentCacheSizeMegaBytes: 10
+      attachmentCacheBound: 1024
+      notary:
+        validating: false
+      detectPublicIp: true
+      extraAdvertisedServiceIds: [ "" ]
+      database:
+        serverNameTablePrefix: ""
+        transactionIsolationLevel: READ_COMMITTED
+        exportHibernateJMXStatistics: false
+        runMigration: true
+      #Provide the h2Url for node
+      #Eg. h2Url: bank1h2
+      dbUrl: notarydb
+      #Provide the h2Port for node
+      #Eg. h2Port: 9101
+      dbPort: 9104
+      dataSourceUrl: "jdbc:h2:tcp://notarydb:9104/persistence;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000;WRITE_DELAY=100;AUTO_RECONNECT=TRUE;"
+      dataSourceClassName: "org.h2.jdbcx.JdbcDataSource"
+      jarPath: "/data/corda-workspace/h2/bin"
+      #Provide the nms for node
+      #Eg. nms: "http://rp-elb-corda-kube-check-cluster2-164630566.us-east-1.elb.amazonaws.com:30050"
+      networkMapURL: "http://rp-elb-corda-kube-check-cluster2-164630566.us-east-1.elb.amazonaws.com:30080"
+      doormanURL: "http://rp-elb-corda-kube-check-cluster2-164630566.us-east-1.elb.amazonaws.com:30081"
+      #If compatibilityZoneURL is set empty then networkMapURL and doormanURL will get configured otherwise compatibilityZoneURL will get configured. 
+      compatibilityZoneURL: 
+      #Provide the jar Version for corda jar and finanace jar
+      #Eg. jarVersion: 3.3-corda
+      jarVersion: 3.3-corda
+      #Provide the devMode for corda node
+      #Eg. devMode: true
+      devMode: false
+      #Provide the useHTTPS for corda node
+      #Eg. useHTTPS: false
+      useHTTPS: true
+      #Provide if corda node is validating or not
+      #Eg. validating: false
+      validating: false
+      #Provide environmental variable for the main container.
+      env:
+        - name: JAVA_OPTIONS
+          value: -Xmx512m
+        - name: CORDA_HOME
+          value: /opt/corda
+        - name: MOUNT_PATH
+          value: /opt/corda
+    
+    credentials:
+      #Provide the dataSourceUser for corda node
+      #Eg. dataSourceUser: sa
+      dataSourceUser: sa
+      #Provide the rpcUser for corda node
+      #Eg. rpcUser: bank1operations
+      rpcUser:
+        #Provide rpc user name.
+        - name: notaryoperations
+        #Provide permissions for rpc user.
+          permissions: [ALL]
+      #Provide the admin user name of networkmap ,required while running job for registering notary.
+      adminUserName: sa
+    
+    volume:
+      #Provide the mount path to be loaded as
+      #Eg. mountPath: "/opt/h2-data"
+      mountPath: /opt/corda
+    
+    resources:
+      #Provide the limit memory for node
+      #Eg. limits: "3Gi"
+      limits: "3Gi"
+      #Provide the requests memory for node
+      #Eg. requests: "2Gi"
+      requests: "2Gi"
+    
+    storage:
+      #Provide the memory for node
+      #Eg. memory: 4Gi
+      memory: 4Gi
+      #Provide the name for node
+      #Eg. name: bank1nodesc
+      name: notarynodesc
+
+    
+    vault:
+      #Provide the vault server address
+      #Eg. address: http://34.228.219.208:8200
+      address: http://52.90.141.182:8200
+      #Provide the vaultrole
+      #Eg. role: vault-role
+      role: vault-role
+      #Eg. authpath: cordanotary
+      authpath: cordanotary
+      #Eg. serviceaccountname: vault-auth-issuer
+      serviceaccountname: vault-auth-notary
+      #Provide the dbsecretprefix for database credentials.
+      dbsecretprefix: notary/credentials/database
+      #Provide the rpcusersecretprefix for rpc users credentials.
+      rpcusersecretprefix: notary/credentials/rpcusers
+      #Provide the tokensecretprefix for vault root token.
+      tokensecretprefix: notary/credentials/vaultroottoken
+      #Provide the keystoresecretprefix for keystore credentials.
+      keystoresecretprefix: notary/credentials/keystore
+      #Provide the certsecretprefix for certificates.
+      certsecretprefix: notary/certs
+      #Provide the nmssecretprefix for 
+      networkmapsecretprefix: notary/credentials/networkmappassword  
+    
+    db:
+      #Provide the interval in seconds you want to iterate till db to be ready 
+      #Eg. readinesscheckinterval: 5
+      readinesscheckinterval: 10
+      #Provide the threshold till you want to check if specified db up and running
+      #Eg. readinessthreshold: 2
+      readinessthreshold: 15

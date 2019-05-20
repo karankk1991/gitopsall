@@ -1,0 +1,106 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: centralbank-database
+  namespace: centralbank-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: centralbank-database
+  chart:
+    git: ssh://git@innersource.accenture.com/dlta/dlt-corda-gitops-all.git
+    path: charts/h2
+    ref: master
+  values:
+    replicaCount: 1
+
+
+    #Provide the Name for node to be deployed
+    #Eg. nodeName: bank1
+    nodeName: centralbank
+    
+    #Provide the replica set for node deployed
+    #Eg. replicas: 1
+    replicas: 1
+    
+    metadata:
+      #Provide the namespace for organization's peer
+      #Eg. namespace: default
+      namespace: centralbank-ns
+    
+    image:
+      #Provide the name of image for container
+      #Eg. containerName: adopfrablockchain.azurecr.io/h2:2018
+      containerName: adopfrablockchain.azurecr.io/h2:2018
+      #Provide the image pull secret of image
+      #Eg. pullSecret: regcred
+      imagePullSecret: regcred
+      #Provide the enviroment variables to be set for the image
+      #Eg. JAVA_OPTIONS : -Xmx512m
+      env:
+        JAVA_OPTIONS : -Xmx512m
+    
+    resources:
+      #Provide the memory limit for node
+      #Eg. limits: "3Gi"
+      limits: "3Gi"
+      #Provide the memory requests for node
+      #Eg. requests: "2Gi"
+      requests: "2Gi"
+    
+    
+    storage:
+      #Provide the name for node
+      #Eg. name: bank1webnodesc
+      name: centralbankdbsc
+      #Provide the memory for node
+      #Eg. memory: 4Gi
+      memory: 4Gi
+      #Provide the mount path to be loaded as
+      #Eg. mountPath: "/opt/h2-data"
+      mountPath: "/opt/h2-data"
+
+    
+
+    
+    service:
+    # Note: Target ports are dependent on image being used. Please change them accordingly 
+    #       nodePort should be kept empty while using service type as ClusterIP ( Values.service.type ) 
+      #Provide the type of service
+      #Eg. type: NodePort or LoadBalancer etc 
+      type: NodePort
+      tcp:
+        #Provide the tcp port for node 
+        #Eg. port: 9101
+        port: 9103
+        #Provide the tcp node port for node 
+        #Eg. port: 32001
+        nodePort: 32003
+        #Provide the tcp targetPort for node 
+        #Eg. targetPort: 1521
+        targetPort: 1521
+      web:
+        #Provide the web node port for node 
+        #Eg. port: 32080
+        nodePort: 32083 
+        #Provide the tcp targetPort for node 
+        #Eg. targetPort: 81
+        targetPort: 81
+        #Provide the tcp node port for node 
+        #Eg. port: 8080
+        port: 8080
+      #   annotations:
+      #     key: "value"
+      annotations: {}
+        
+    deployment:
+      #   annotations:
+      #     key: "value"
+      annotations: {}
+    
+    pvc:
+      #   annotations:
+      #     key: "value"
+      annotations: {}
+    
+      

@@ -1,0 +1,96 @@
+# Default values for nodechart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#Provide the nodeName for node
+#Eg. nodeName: bank1web
+nodeName: 
+
+image:
+  #Provide the containerName of image for main container
+  containerName: adopfrablockchain.azurecr.io/ft-webserver:1.0.0-ft-webserver-20190228
+  #Provide the name of image for init container
+  #Eg. name: adopfrablockchain.azurecr.io/alpine-utils:1.0
+  initContainerName: adopfrablockchain.azurecr.io/alpine-utils:1.0
+  #Provide the image pull secret of image
+  #Eg. pullSecret: regcred
+  imagePullSecret: regcred
+
+nodeConf:
+  #Provide the Name of the corda node for node.conf
+  #Eg. node: bank1
+  node:
+  #Provide the node Rpc Port for node
+  #Eg. nodeRpcPort: 10008  
+  nodeRpcPort:
+  #Provide the node Rpc Admin Port for node
+  #Eg. nodeRpcAdminPort: 10108 
+  nodeRpcAdminPort:
+  #Provide the legalName for node
+  #Eg. legalName: "O=Bank1,L=London,C=GB,CN=Bank1"  
+  legalName:
+  #Provide the dbUrl for node
+  dbUrl:
+  #Provide the db Tcp Port for node
+  dbTcpPort:
+  dataSourceClassName:
+  dataSourceUrl:
+  jarPath:
+  #Provide the jar Version for corda jar and finanace jar
+  #Eg. jarVersion: 3.3-corda
+  jarVersion: 
+  #Provide the devMode for corda node
+  #Eg. devMode: true
+  devMode: 
+  #Provide the useHTTPS for corda node
+  #Eg. useHTTPS: false
+  useHTTPS: 
+  
+credentials:
+  #Provide the dataSourceUser for corda node
+  #Eg. dataSourceUser: sa
+  dataSourceUser: 
+  #Provide the dataSourcePassword for corda node
+  #Eg. dataSourcePassword: 
+  rpcUser: 
+  #Provide the rpcPassword for corda node
+  #Eg. rpcPassword: test
+
+
+resources:
+  #Provide the limit memory for node
+  #Eg. limits: "3Gi"
+  limits: 
+  #Provide the requests memory for node
+  #Eg. requests: "2Gi"
+  requests: 
+
+storage:
+  #Provide the memory for node
+  #Eg. memory: 4Gi
+  memory: 
+
+    
+web:
+  #Provide the web port for node 
+  #Eg. port: 10009
+  port:
+  #Provide the web node port for node 
+  #Eg. port: 30009
+  nodePort:
+  #Provide the web node port for node 
+  #Eg. port: 30009
+  targetPort:  
+
+service:
+  #Provide the type of service
+  #Eg. type: NodePort 
+  type: 
+  
+node:
+  #Provide the interval in seconds you want to iterate till node to be ready 
+  #Eg. readinesscheckinterval: 5
+  readinesscheckinterval: 
+  #Provide the threshold till you want to check if specified node up and running
+  #Eg. readinessthreshold: 2
+  readinessthreshold: 

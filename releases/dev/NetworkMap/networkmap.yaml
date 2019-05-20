@@ -1,0 +1,194 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: networkmap
+  namespace: networkmap-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: networkmap
+  chart:
+    git: ssh://git@innersource.accenture.com/dlta/dlt-corda-gitops-all.git
+    path: charts/networkMap
+    ref: master
+  values:
+    replicaCount: 1
+
+
+    # Default values for nmschart.
+    # This is a YAML-formatted file.
+    # Declare variables to be passed into your templates.
+    
+    #Provide the nodeName for node
+    #Eg. nodeName: bank1
+    nodeName: network-map
+    
+    #Provide the replica set for node deployed
+    #Eg. replicas: 1
+    replicas: 1
+    
+    metadata:
+      #Provide the namespace for organization's peer
+      #Eg. namespace: default
+      namespace: networkmap-ns
+    
+    image:
+      #Provide the containerName of image
+      #Eg. containerName: adopfrablockchain.azurecr.io/h2:2018
+      containerName: adopfrablockchain.azurecr.io/nms:0.3.11-network-map-service-nm-20190325
+      #Provide the name of image for init container
+      #Eg. name: adopfrablockchain.azurecr.io/alpine-utils:1.0
+      initContainerName: adopfrablockchain.azurecr.io/alpine-utils:1.0
+      #Provide the image pull secret of image
+      #Eg. pullSecret: regcred
+      imagePullSecret: regcred
+      #Provide networkmap username.   
+      #system admin username should be same as NETWORKMAP_AUTH_USERNAME under env:
+      authusername: sa
+      mountPath:
+        #Provide the path for base dir
+        #Eg. basePath: /opt/workdir
+        basePath: /opt/networkmap
+      #Provide the enviroment variables to be set
+      env:
+        #Web port, Only port opened in docker image
+        - name: DOORMAN_PORT
+          value: 8080
+        #Provide rootcaname for the doorman
+        #The name for the root ca. If doorman and certman are turned off this will automatically default to Corda dev root ca
+        - name: NETWORKMAP_ROOT_CA_NAME
+          value: CN=DLT Root CA, OU=DLT, O=DLT, L=London, ST=London, C=BR
+        #Provide whether TLS is enabled or not
+        - name: NETWORKMAP_TLS
+          value: false
+        #Provide database directory for this service
+        - name: NETWORKMAP_DB
+          value: /opt/networkmap/db
+        #Provide MongoDB username created. 
+        - name: DB_USERNAME
+          value: networkmap
+        #Provide networkmap username.   
+        - name: NETWORKMAP_AUTH_USERNAME
+          value: sa
+        #Provide hostname of MongoDB.   
+        - name: DB_URL
+          value: mongodb-networkmap
+        #Provide MongoDB host port.   
+        - name: DB_PORT
+          value: 27017
+        #Provide MongoDB database name.   
+        - name: DATABASE
+          value: admin
+        #Provide path to key if TLS turned on
+        #- name: NETWORKMAP_TLS_KEY_PATH
+        #  value: /opt/corda/certs/doorman.key  
+        #Provide path to key if TLS turned on
+        #- name: NETWORKMAP_TLS_CERT_PATH
+        #  value: /opt/corda/certs/doorman.crt
+        #Provide path to key if TLS turned on
+        #- name: NETWORKMAP_TLS_KEY_PATH
+        #  value: /opt/corda/certs/doorman.key
+        #Provide http cache timeout for this service in ISO 8601 duration format
+        #Default value
+        #- name: NETWORKMAP_CACHE_TIMEOUT
+        #  value: 2S
+        #Provide interface to bind the service to
+        #Default value
+        #- name: NETWORKMAP_HOSTNAME
+        #  value: 0.0.0.0
+        #Provide name for mongo database
+        #Default value
+        #- name: NETWORKMAP_MONGOD_DATABASE
+        #  value: nms
+        #Provide optional location of pre-existing mongod server
+        #Default value
+        #- name: NETWORKMAP_MONGOD_LOCATION
+        #  value: 
+        #Provide queue time for the network map to update for addition of nodes
+        #Default value
+        #- name: NETWORKMAP_NETWORK_MAP_DELAY
+        #  value: 1S
+        #Provide schedule duration for a parameter update
+        #Default value
+        #- name: NETWORKMAP_PARAM_UPDATE_DELAY
+        #  value: 10S
+        #Provide web-root
+        #Default value
+        #- name: NETWORKMAP_WEB_ROOT
+        #  value: /
+          
+    storage:
+      #Provide the name for storage class
+      #Eg. name: bank1nodesc
+      name: network-mapnodesc
+      #Provide the memory for node
+      #Eg. memory: 4Gi
+      memory: 4Gi
+
+    
+    service:
+    # Note: Target ports are dependent on image being used. Please change them accordingly 
+    #       nodePort should be kept empty while using service type as ClusterIP ( Values.service.type ) 
+      #Provide the type of service
+      #Eg. type: NodePort, LoadBalancer etc
+      type: NodePort
+      #Provide the node port for node 
+      #Eg. port: 30007
+      nodePort: 30080
+      #Provide the targetPort for node service to be accessible 
+      #Eg. targetPort: 8080
+      targetPort: 8080
+      #Provide the port for node service to be accessible 
+      #Eg. port: 8080
+      port: 8080
+      #   annotations:
+      #     key: "value"
+      annotations: {}
+    
+    deployment:
+      #   annotations:
+      #     key: "value"
+      annotations: {}
+      
+    pvc:
+      #   annotations:
+      #     key: "value"
+      annotations: {}  
+      
+    vault:
+      #Provide the vault server address
+      #Eg. address: http://54.226.163.39:8200
+      address: http://52.90.141.182:8200
+      #Provide the vaultrole
+      #Eg. role: vault-role  
+      role: vault-role
+      #Provide the authpath
+      #Eg. authpath: cordabank1
+      authpath: cordanetworkmap
+      #Provide the serviceaccountname
+      #Eg. serviceaccountname: vault-auth-issuer
+      serviceaccountname: vault-auth-networkmap
+      #Provide the secretprefix
+      #Eg. secretnmspass: networkmap/credentials/userpassword
+      secretnetworkmappass: networkmap/credentials/userpassword
+      #Provide the secretprefix
+      #Eg. certsecretprefix: networkmap/certs
+      certsecretprefix: networkmap/certs
+      #Provide the secretprefix
+      #Eg. dbsecretprefix: networkmap/credentials/mongodb
+      dbcredsecretprefix: networkmap/credentials/mongodb
+      
+    mountPath:
+      #Provide the path for base dir
+      #Eg. basePath: /opt/workdir
+      basePath: /opt/networkmap
+    
+    healthcheck:
+      dburl: mongodb-networkmap:27017
+      #Provide the interval in seconds you want to iterate till db to be ready 
+      #Eg. readinesscheckinterval: 5
+      readinesscheckinterval: 10
+      #Provide the threshold till you want to check if specified db up and running
+      #Eg. readinessthreshold: 2
+      readinessthreshold: 15
+     

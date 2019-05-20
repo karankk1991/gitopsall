@@ -1,0 +1,137 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: registernotary-{{ $.Values.nodeName }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: registernotary-{{ $.Values.nodeName }}
+    app.kubernetes.io/name: registernotary-{{ $.Values.nodeName }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}  
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: registernotary-{{ $.Values.nodeName }}
+        app.kubernetes.io/name: registernotary-{{ $.Values.nodeName }}
+        app.kubernetes.io/instance: {{ .Release.Name }} 
+    spec:
+      restartPolicy: "OnFailure"
+      serviceAccountName: {{ $.Values.vault.serviceaccountname }}
+      imagePullSecrets:
+        - name: {{ .Values.image.imagePullSecret }}
+      volumes:
+        - name: {{ .Values.nodeName }}volume
+          persistentVolumeClaim:
+              claimName: {{ .Values.nodeName }}-pvc
+      containers:
+      - name: registernotary
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        env:
+           - name: VAULT_ADDR
+             value: {{ $.Values.vault.address }}
+           - name: KUBERNETES_AUTH_PATH
+             value: {{ $.Values.vault.authpath }}
+           - name: VAULT_APP_ROLE
+             value: {{ $.Values.vault.role }}
+           - name: MOUNT_PATH
+             value: {{ $.Values.volume.mountPath }}
+           - name: VAULT_NODE_NAME
+             value: {{ .Values.nodeName }}
+           - name: SECRET_PREFIX
+             value: {{.Values.vault.networkmapsecretprefix}}
+           - name: JAVA_OPTIONS
+             value: -Xmx512m
+           - name: NMS_USER_ID
+             value: {{.Values.credentials.adminUserName}}
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh 
+            echo "STARTING"
+            KUBE_SA_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+            VAULT_TOKEN=$(curl -sS --request POST ${VAULT_ADDR}/v1/auth/${KUBERNETES_AUTH_PATH}/login -H "Content-Type: application/json" -d '{"role":"vault-role","jwt":"'"${KUBE_SA_TOKEN}"'"}' | jq -r 'if .errors then . else .auth.client_token end')
+
+            LOOKUP_PWD_RESPONSE=$(curl -sS --header "X-Vault-Token: ${VAULT_TOKEN}" ${VAULT_ADDR}/v1/${SECRET_PREFIX} | jq -r 'if .errors then . else . end')
+                            
+            NMS_USER_PASSWORD=$(echo ${LOOKUP_PWD_RESPONSE} | jq -r '.data["sa"]')
+
+            if [ -z "{{ .Values.nodeConf.compatibilityZoneURL }}" ]
+            then
+                url={{ .Values.nodeConf.networkMapURL }}
+            else
+                url={{ .Values.nodeConf.compatibilityZoneURL }}       
+            fi        
+            
+            if [ {{ .Values.nodeConf.validating }} == "true" ]
+            then
+                section=/admin/api/notaries/validating
+            else
+                section=/admin/api/notaries/nonValidating
+            fi
+
+                        
+            token=$(curl --silent --show-error -X POST "$url/admin/api/login" -H "accept: text/plain" -H "Content-Type: application/json" -d "{ \"user\": \"${NMS_USER_ID}\", \"password\": \"${NMS_USER_PASSWORD}\"}" | awk '{print $1}');
+            NOTARYNODEINFOFILENAME=$(ls ${MOUNT_PATH}/ | grep nodeInfo | awk '{print $1}');
+            
+            cd ${MOUNT_PATH}
+                        
+            response=$(curl --silent --show-error -X POST -H "Authorization: Bearer ${token}" -H "accept: text/plain" -H "Content-Type: application/octet-stream" --data-binary @${NOTARYNODEINFOFILENAME} ${url}${section} | awk '{print $1}')
+            echo $response
+            if [ $response = "OK" ]
+            then
+                echo "Response is OK";
+            else
+                echo "Response from NMS is not ok";
+            fi
+                            
+            rm -rf ${MOUNT_PATH}/network-parameters;
+            echo "FINISHED"
+        volumeMounts:
+        - name: {{ .Values.nodeName }}volume
+          mountPath: {{ $.Values.volume.mountPath }}
+      initContainers:
+      - name: notary-healthcheck
+        image: {{ .Values.image.initContainerName }}
+        imagePullPolicy: Always
+        command: ["sh", "-c"]
+        args:
+        - |-
+          #!/usr/bin/env sh
+          COUNTER=1
+          FLAG=true
+          while [ "$COUNTER" -le {{ $.Values.healthcheck.readinessthreshold }} ]
+          do
+            NODE={{ .Values.nodeName }}:{{ .Values.service.rpc.port }}
+            STATUS=$(nc -vz $NODE 2>&1 | grep -c open )
+            if [ "$STATUS" == 0 ]
+            then
+              FLAG=false
+            else
+              FLAG=true                
+              echo "node up and running"
+            fi   
+            if [ "$FLAG" == false ]
+            then                
+              echo "Retry attempted $COUNTER times, retrying after {{ $.Values.healthcheck.readinesscheckinterval }} seconds"
+              COUNTER=`expr "$COUNTER" + 1`
+              sleep {{ $.Values.healthcheck.readinesscheckinterval }}			
+            else
+              echo "SUCCESS!"
+              echo "notary up and running!"
+              exit 0
+              break
+            fi   
+          done
+          if [ "$COUNTER" -gt {{ $.Values.healthcheck.readinessthreshold }} ] || [ "$FLAG" == false ] 
+          then
+            echo "Retry attempted $COUNTER times, no notary up and running. Giving up!"
+            exit 1
+            break
+          fi
+
+
+

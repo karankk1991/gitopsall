@@ -1,0 +1,112 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: networkmap-database
+  namespace: networkmap-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: networkmap-database
+  chart:
+    git: ssh://git@innersource.accenture.com/dlta/dlt-corda-gitops-all.git
+    path: charts/mongodb
+    ref: master
+  values:
+    replicaCount: 1
+
+
+    # Default values for nodechart.
+    # This is a YAML-formatted file.
+    # Declare variables to be passed into your templates.
+    
+    #Provide the Name for node to be deployed
+    #Eg. nodeName: bank1
+    nodeName: mongodb-networkmap
+    
+    #Provide the replica set for node deployed
+    #Eg. replicas: 1
+    replicas: 1
+    
+    metadata:
+      #Provide the namespace for organization's peer
+      #Eg. namespace: default
+      namespace: networkmap-ns
+      
+    image: 
+      #Provide the name of image for container
+      #Eg. containerName: adopfrablockchain.azurecr.io/h2:2018
+      containerName: mongo:3.6.6
+      #Provide the name of image for init container
+      #Eg. name: adopfrablockchain.azurecr.io/alpine-utils:1.0
+      initContainerName: adopfrablockchain.azurecr.io/alpine-utils:1.0
+      #Provide the image pull secret of image
+      #Eg. pullSecret: regcred
+      imagePullSecret: regcred
+    
+      
+    storage:
+      #Provide the memory for node
+      #Eg. memory: 4Gi
+      memory: 4Gi
+      #Provide the name for storage class
+      #Eg. name: bank1nodesc
+      name: mongodb-networkmapdbsc
+      #Provide the name for volume
+      #Eg. volname: hostvol
+      volname: hostvol
+      #Provide the base path
+      #Eg. mountPath: "/data/db"
+      mountPath: /data/db
+
+      
+    service:
+    # Note: Target ports are dependent on image being used. Please change them accordingly 
+    #       nodePort should be kept empty while using service type as ClusterIP ( Values.service.type ) 
+      #Provide the type of service
+      #Eg. type: NodePort
+      type: NodePort
+      tcp:
+        #Provide the tcp port for node 
+        #Eg. port: 9101
+        port: 27017
+        #Provide the tcp node port for node 
+        #Eg. port: 32001
+        nodePort: 30082
+        #Provide the tcp node port for node 
+        #Eg. targetPort: 27017
+        targetPort: 27017
+      #   annotations:
+      #     key: "value"
+      annotations: {}
+    
+    deployment:
+      #   annotations:
+      #     key: "value"
+      annotations: {}
+      
+    pvc:
+      #   annotations:
+      #     key: "value"
+      annotations: {}
+      
+    mongodb:
+      #Provide the username for mongo db
+      #Eg. username: networkmap
+      username: networkmap
+    
+    vault:
+      #Provide the vault server address
+      #Eg. address: http://54.226.163.39:8200
+      address: http://52.90.141.182:8200
+      #Provide the vaultrole
+      #Eg. role: vault-role
+      role: vault-role
+      #Provide the authpath
+      #Eg. authpath: cordabank1
+      authpath: cordanetworkmap
+      #Provide the serviceaccountname
+      #Eg. serviceaccountname: vault-auth-issuer  
+      serviceaccountname: vault-auth-networkmap
+      #Provide the secretprefix
+      #Eg. secretprefix: nms/credentials/mongodb/networkmap
+      secretprefix: networkmap/credentials/mongodb

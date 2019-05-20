@@ -1,0 +1,104 @@
+apiVersion: flux.weave.works/v1beta1
+kind: HelmRelease
+metadata:
+  name: notary-registration-networkmap
+  namespace: notary-ns
+  annotations:
+    flux.weave.works/automated: "false"
+spec:
+  releaseName: notary-registration-networkmap
+  chart:
+    git: ssh://git@innersource.accenture.com/dlta/dlt-corda-gitops-all.git
+    path: charts/register-notary
+    ref: master
+  values:
+    replicaCount: 1
+
+
+    #Provide the nodeName for node
+    #Eg. nodeName: notary
+    nodeName: notary
+    
+    
+    metadata:
+      #Provide the namespace for organization's peer
+      #Eg. namespace: default
+      namespace: notary-ns
+    
+    image:
+      #Provide the containerName of image
+      #Eg. containerName: adopfrablockchain.azurecr.io/h2:2018
+      containerName: adopfrablockchain.azurecr.io/corda:3.3.0-corda-test-20190219
+      #Provide the name of image for init container
+      #Eg. name: adopfrablockchain.azurecr.io/alpine-utils:1.0
+      initContainerName: adopfrablockchain.azurecr.io/alpine-utils:1.0
+      #Provide the image pull secret of image
+      #Eg. pullSecret: regcred
+      imagePullSecret: regcred
+    
+    #For more information for node.Conf fields please refer to: https://docs.corda.r3.com/corda-configuration-file.html
+    nodeConf:
+      #Eg. nms: "http://rp-elb-corda-kube-check-cluster2-164630566.us-east-1.elb.amazonaws.com:30050"
+      networkMapURL: "http://rp-elb-corda-kube-check-cluster2-164630566.us-east-1.elb.amazonaws.com:30080"
+      #If compatibilityZoneURL is set empty then networkMapURL and doormanURL will get configured otherwise compatibilityZoneURL will get configured. 
+      compatibilityZoneURL: 
+      validating: false
+
+    
+    credentials:
+      #Provide the dataSourceUser for corda node
+      #Eg. dataSourceUser: sa
+      dataSourceUser: sa
+      #Provide the rpcUser for corda node
+      #Eg. rpcUser: bank1operations
+      rpcUser:
+        #Provide rpc user name.
+        - name: notaryoperations
+        #Provide permissions for rpc user.
+          permissions: [ALL]
+      #Provide the admin user name of networkmap ,required while running job for registering notary.
+      adminUserName: sa
+    
+    volume:
+      #Provide the mount path to be loaded as
+      #Eg. mountPath: "/opt/h2-data"
+      mountPath: /opt/corda
+    
+    service:
+      rpc:
+        #Provide the rpc port for node 
+        #Eg. port: 10008
+        port: 10017 
+
+    
+    vault:
+      #Provide the vault server address
+      #Eg. address: http://34.228.219.208:8200
+      address: http://52.90.141.182:8200
+      #Provide the vaultrole
+      #Eg. role: vault-role
+      role: vault-role
+      #Eg. authpath: cordanotary
+      authpath: cordanotary
+      #Eg. serviceaccountname: vault-auth-issuer
+      serviceaccountname: vault-auth-notary
+      #Provide the dbsecretprefix for database credentials.
+      dbsecretprefix: notary/credentials/database
+      #Provide the rpcusersecretprefix for rpc users credentials.
+      rpcusersecretprefix: notary/credentials/rpcusers
+      #Provide the tokensecretprefix for vault root token.
+      tokensecretprefix: notary/credentials/vaultroottoken
+      #Provide the keystoresecretprefix for keystore credentials.
+      keystoresecretprefix: notary/credentials/keystore
+      #Provide the certsecretprefix for certificates.
+      certsecretprefix: notary/certs
+      #Provide the nmssecretprefix for 
+      networkmapsecretprefix: notary/credentials/networkmappassword  
+    
+    healthcheck:
+      #Provide the interval in seconds you want to iterate till db to be ready 
+      #Eg. readinesscheckinterval: 5
+      readinesscheckinterval: 10
+      #Provide the threshold till you want to check if specified db up and running
+      #Eg. readinessthreshold: 2
+      readinessthreshold: 15
