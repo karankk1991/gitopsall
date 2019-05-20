@@ -1,18 +1,17 @@
 apiVersion: apps/v1beta1
 kind: Pod
 metadata:
-  name: {{ .Values.nodeName }}
-  namespace: {{ .Values.metadata.namespace }}
-  labels:
-    app.kubernetes.io/name: {{ .Values.nodeName }}
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    name: {{ .Values.nodeName }}
+    namespace: {{ .Values.metadata.namespace }}
+    {{- if .Values.deployment.annotations }}
+    annotations:
+  {{ toYaml .Values.deployment.annotations | indent 8 }}
+      {{- end }}  
+    labels:
+      app.kubernetes.io/name: {{ .Values.nodeName }}
+      env:{{.Values.env}}
 spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: {{ .Values.nodeName }}
-        app.kubernetes.io/name: {{ .Values.nodeName }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+    containers:
+    - image: {{ .Values.image.containerName }}
+      name: kubia
+  

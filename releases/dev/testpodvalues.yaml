@@ -1,21 +1,22 @@
 apiVersion: flux.weave.works/v1beta1
 kind: HelmRelease
 metadata:
-  name: networkmap
+  name: orderer
   namespace: default
   annotations:
     flux.weave.works/automated: "true"
   
 spec:
-  releaseName: networkmap
+  releaseName: orderer
   chart:
     git: git@github.com:karankk1991/gitopsall.git
-    path: charts/networkMap
+    path: charts/testpod
     ref: master
   values:
     replicaCount: 1
 
     nodeName: orderer
+    env: dev
     
     #Provide the replica set for node deployed
     #Eg. replicas: 1
@@ -24,92 +25,18 @@ spec:
     metadata:
       #Provide the namespace for organization's peer
       #Eg. namespace: default
-      namespace: networkmap-ns
+      namespace: default
     
     image:
       #Provide the containerName of image
       #Eg. containerName: adopfrablockchain.azurecr.io/h2:2018
-      containerName: adopfrablockchain.azurecr.io/nms:0.3.11-network-map-service
+      containerName: luksa/kubia
       #Provide the name of image for init container
       #Eg. name: adopfrablockchain.azurecr.io/alpine-utils:1.0
-      initContainerName: adopfrablockchain.azurecr.io/alpine-utils:1.0
+      #initContainerName: adopfrablockchain.azurecr.io/alpine-utils:1.0
       #Provide the image pull secret of image
       #Eg. pullSecret: regcred
-      imagePullSecret: regcred
+      #imagePullSecret: regcred
 
-      env:
-        #Web port, Only port opened in docker image
-        - name: NMS_PORT
-          value: 8080
-        #Provide rootcaname for the doorman
-        #The name for the root ca. If doorman and certman are turned off this will automatically default to Corda dev root ca
-        - name: NMS_ROOT_CA_NAME
-          value: "CN=Corda Root CA, OU=FRA, O=FRA, L=London, ST=London, C=BR"
-        #Provide whether TLS is enabled or not
-        - name: NMS_TLS
-          value: false
-        #Provide database directory for this service
-        - name: NMS_DOORMAN
-          value: true
-        #Provide MongoDB username created. 
-        - name: NMS_CERTMAN
-          value: false
-        #Provide networkmap username.   
-        - name: NMS_DB
-          value: /opt/cordite/db
-        #Provide hostname of MongoDB.   
-        - name: NMS_MONGO_CONNECTION_STRING
-          value: embed
-        #Provide MongoDB host port.   
-        - name: NMS_AUTH_USERNAME
-          value: sa 
-          
-    storage:
-      #Provide the name for storage class
-      #Eg. name: bank1nodesc
-      provisioner: kubernetes.io/azure-file
-      #Provide the memory for node
-      #Eg. memory: 4Gi
-      memory: 4Gi
-      type: standard
-
-    
-    service:
-    # Note: Target ports are dependent on image being used. Please change them accordingly 
-    #       nodePort should be kept empty while using service type as ClusterIP ( Values.service.type ) 
-      #Provide the type of service
-      #Eg. type: NodePort, LoadBalancer etc
-      type: LoadBalancer
-      #Provide the node port for node 
-      #Eg. port: 30007
-      nodePort: 30050
-    
-    deployment:
-      #   annotations:
-      #     key: "value"
-      annotations: {}
-      
-    pvc:
-      #   annotations:
-      #     key: "value"
-      annotations: {}  
-      
-    vault:
-      #Provide the vault server address
-      #Eg. address: http://54.226.163.39:8200
-      address: http://52.90.141.182:8200
-      #Provide the vaultrole
-      #Eg. role: vault-role  
-      role: vault-role
-      #Provide the authpath
-      #Eg. authpath: cordabank1
-      authpath: cordanms
-      #Provide the serviceaccountname
-      #Eg. serviceaccountname: vault-auth-issuer
-      serviceaccountname: vault-auth-nms
-      #Provide the secretprefix
-      #Eg. secretnmspass: networkmap/credentials/userpassword
-      secretprefix: nms
-      secretnmspass: nms/credentials?adminpass
 
      
