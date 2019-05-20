@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+    name: orderer
+    labels:
+     creation_method: manual
+     env: dev
+spec:
+    containers:
+    - image: luksa/kubia
+      name: kubia
