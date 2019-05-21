@@ -109,7 +109,7 @@ spec:
     vault:
       #Provide the vault server address
       #Eg. address: http://54.226.163.39:8200
-      address: http://52.90.141.182:8200
+      address: http://ac6499902756611e99f91022cb7b51e1-1368067035.eu-west-2.elb.amazonaws.com:8200
       #Provide the vaultrole
       #Eg. role: vault-role  
       role: vault-role
