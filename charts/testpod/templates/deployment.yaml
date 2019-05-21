@@ -1,0 +1,17 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+    name: {{ .Values.nodeName }}
+    namespace: {{ .Values.metadata.namespace }}
+    {{- if .Values.deployment.annotations }}
+    annotations:
+  {{ toYaml .Values.deployment.annotations | indent 8 }}
+      {{- end }}  
+    labels:
+      app.kubernetes.io/name: {{ .Values.nodeName }}
+      env: {{.Values.env}}
+spec:
+    containers:
+    - image: {{ .Values.image.containerName }}
+      name: kubia
+  
