@@ -74,11 +74,10 @@ spec:
     storage:
       #Provide the name for storage class
       #Eg. name: bank1nodesc
-      provisioner: kubernetes.io/azure-file
+      provisioner: kubernetes.io/aws-ebs
       #Provide the memory for node
       #Eg. memory: 4Gi
-      memory: 4Gi
-      type: standard
+      memory: gp2
 
     
     service:
