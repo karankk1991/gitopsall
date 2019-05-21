@@ -77,7 +77,13 @@ spec:
       provisioner: kubernetes.io/aws-ebs
       #Provide the memory for node
       #Eg. memory: 4Gi
-      memory: gp2
+      memory: 2Gi
+      
+      parameters:
+        type: gp2
+        encrypted: "true"
+      
+      annotations: {}
 
     
     service:
